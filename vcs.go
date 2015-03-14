@@ -11,13 +11,13 @@ import (
 // A VCSBackend represents a VCS backend.
 type VCSBackend struct {
 	// Clones a remote repository to local path.
-	Clone func(*url.URL, string, bool) error
+	Clone func(*url.URL, string, bool, bool) error
 	// Updates a cloned local repository.
 	Update func(string) error
 }
 
 var GitBackend = &VCSBackend{
-	Clone: func(remote *url.URL, local string, shallow bool) error {
+	Clone: func(remote *url.URL, local string, shallow bool, recursive bool) error {
 		dir, _ := filepath.Split(local)
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
@@ -28,6 +28,9 @@ var GitBackend = &VCSBackend{
 		if shallow {
 			args = append(args, "--depth", "1")
 		}
+        if recursive {
+            args = append(args, "--recursive")
+        }
 		args = append(args, remote.String(), local)
 
 		return utils.Run("git", args...)
@@ -38,7 +41,7 @@ var GitBackend = &VCSBackend{
 }
 
 var SubversionBackend = &VCSBackend{
-	Clone: func(remote *url.URL, local string, shallow bool) error {
+	Clone: func(remote *url.URL, local string, shallow bool, ignoredRecursive bool) error {
 		dir, _ := filepath.Split(local)
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
@@ -60,7 +63,7 @@ var SubversionBackend = &VCSBackend{
 
 var GitsvnBackend = &VCSBackend{
 	// git-svn seems not supporting shallow clone currently.
-	Clone: func(remote *url.URL, local string, ignoredShallow bool) error {
+	Clone: func(remote *url.URL, local string, ignoredShallow bool, ignoredRecursive bool) error {
 		dir, _ := filepath.Split(local)
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
@@ -76,7 +79,7 @@ var GitsvnBackend = &VCSBackend{
 
 var MercurialBackend = &VCSBackend{
 	// Mercurial seems not supporting shallow clone currently.
-	Clone: func(remote *url.URL, local string, ignoredShallow bool) error {
+	Clone: func(remote *url.URL, local string, ignoredShallow bool, ignoredRecursive bool) error {
 		dir, _ := filepath.Split(local)
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {

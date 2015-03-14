@@ -78,6 +78,7 @@ type _cloneArgs struct {
 	remote  *url.URL
 	local   string
 	shallow bool
+    recursive bool
 }
 
 type _updateArgs struct {
@@ -99,11 +100,12 @@ func withFakeGitBackend(t *testing.T, block func(string, *_cloneArgs, *_updateAr
 
 	var originalGitBackend = GitBackend
 	GitBackend = &VCSBackend{
-		Clone: func(remote *url.URL, local string, shallow bool) error {
+		Clone: func(remote *url.URL, local string, shallow bool, recursive bool) error {
 			cloneArgs = _cloneArgs{
 				remote:  remote,
 				local:   local,
 				shallow: shallow,
+                recursive: recursive,
 			}
 			return nil
 		},
@@ -132,6 +134,7 @@ func TestCommandGet(t *testing.T) {
 		Expect(cloneArgs.remote.String()).To(Equal("https://github.com/motemen/ghq-test-repo"))
 		Expect(filepath.ToSlash(cloneArgs.local)).To(Equal(filepath.ToSlash(localDir)))
 		Expect(cloneArgs.shallow).To(Equal(false))
+        Expect(cloneArgs.recursive).To(Equal(false))
 	})
 
 	withFakeGitBackend(t, func(tmpRoot string, cloneArgs *_cloneArgs, updateArgs *_updateArgs) {
@@ -160,6 +163,7 @@ func TestCommandGet(t *testing.T) {
 		Expect(cloneArgs.remote.String()).To(Equal("ssh://git@github.com/motemen/ghq-test-repo"))
 		Expect(filepath.ToSlash(cloneArgs.local)).To(Equal(filepath.ToSlash(localDir)))
 		Expect(cloneArgs.shallow).To(Equal(false))
+        Expect(cloneArgs.recursive).To(Equal(false))
 	})
 
 	withFakeGitBackend(t, func(tmpRoot string, cloneArgs *_cloneArgs, updateArgs *_updateArgs) {
@@ -170,6 +174,18 @@ func TestCommandGet(t *testing.T) {
 		Expect(cloneArgs.remote.String()).To(Equal("https://github.com/motemen/ghq-test-repo"))
 		Expect(filepath.ToSlash(cloneArgs.local)).To(Equal(filepath.ToSlash(localDir)))
 		Expect(cloneArgs.shallow).To(Equal(true))
+        Expect(cloneArgs.recursive).To(Equal(false))
+	})
+
+	withFakeGitBackend(t, func(tmpRoot string, cloneArgs *_cloneArgs, updateArgs *_updateArgs) {
+		localDir := filepath.Join(tmpRoot, "github.com", "motemen", "ghq-test-repo")
+
+		app.Run([]string{"", "get", "-recursive", "motemen/ghq-test-repo"})
+
+		Expect(cloneArgs.remote.String()).To(Equal("https://github.com/motemen/ghq-test-repo"))
+		Expect(filepath.ToSlash(cloneArgs.local)).To(Equal(filepath.ToSlash(localDir)))
+		Expect(cloneArgs.shallow).To(Equal(false))
+        Expect(cloneArgs.recursive).To(Equal(true))
 	})
 }
 

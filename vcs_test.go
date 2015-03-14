@@ -33,7 +33,7 @@ func TestGitBackend(t *testing.T) {
 		return nil
 	}
 
-	err = GitBackend.Clone(remoteURL, localDir, false)
+	err = GitBackend.Clone(remoteURL, localDir, false, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(1))
@@ -41,7 +41,7 @@ func TestGitBackend(t *testing.T) {
 		"git", "clone", remoteURL.String(), localDir,
 	}))
 
-	err = GitBackend.Clone(remoteURL, localDir, true)
+	err = GitBackend.Clone(remoteURL, localDir, true, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(2))
@@ -49,10 +49,17 @@ func TestGitBackend(t *testing.T) {
 		"git", "clone", "--depth", "1", remoteURL.String(), localDir,
 	}))
 
+    err = GitBackend.Clone(remoteURL, localDir, false, true)
+    Expect(err).NotTo(HaveOccurred())
+    Expect(commands).To(HaveLen(3))
+    Expect(lastCommand().Args).To(Equal([]string{
+        "git", "clone", "--recursive", remoteURL.String(), localDir,
+    }))
+
 	err = GitBackend.Update(localDir)
 
 	Expect(err).NotTo(HaveOccurred())
-	Expect(commands).To(HaveLen(3))
+	Expect(commands).To(HaveLen(4))
 	Expect(lastCommand().Args).To(Equal([]string{
 		"git", "pull", "--ff-only",
 	}))
@@ -81,7 +88,7 @@ func TestSubversionBackend(t *testing.T) {
 		return nil
 	}
 
-	err = SubversionBackend.Clone(remoteURL, localDir, false)
+	err = SubversionBackend.Clone(remoteURL, localDir, false, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(1))
@@ -89,7 +96,7 @@ func TestSubversionBackend(t *testing.T) {
 		"svn", "checkout", remoteURL.String(), localDir,
 	}))
 
-	err = SubversionBackend.Clone(remoteURL, localDir, true)
+	err = SubversionBackend.Clone(remoteURL, localDir, true, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(2))
@@ -97,10 +104,18 @@ func TestSubversionBackend(t *testing.T) {
 		"svn", "checkout", "--depth", "1", remoteURL.String(), localDir,
 	}))
 
-	err = SubversionBackend.Update(localDir)
+	err = SubversionBackend.Clone(remoteURL, localDir, false, true)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(3))
+	Expect(lastCommand().Args).To(Equal([]string{
+		"svn", "checkout", remoteURL.String(), localDir,
+	}))
+
+	err = SubversionBackend.Update(localDir)
+
+	Expect(err).NotTo(HaveOccurred())
+	Expect(commands).To(HaveLen(4))
 	Expect(lastCommand().Args).To(Equal([]string{
 		"svn", "update",
 	}))
@@ -129,7 +144,7 @@ func TestGitsvnBackend(t *testing.T) {
 		return nil
 	}
 
-	err = GitsvnBackend.Clone(remoteURL, localDir, false)
+	err = GitsvnBackend.Clone(remoteURL, localDir, false, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(1))
@@ -137,17 +152,26 @@ func TestGitsvnBackend(t *testing.T) {
 		"git", "svn", "clone", remoteURL.String(), localDir,
 	}))
 
-	err = GitsvnBackend.Clone(remoteURL, localDir, true)
+	err = GitsvnBackend.Clone(remoteURL, localDir, true, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(2))
 	Expect(lastCommand().Args).To(Equal([]string{
 		"git", "svn", "clone", remoteURL.String(), localDir,
 	}))
-	err = GitsvnBackend.Update(localDir)
+
+	err = GitsvnBackend.Clone(remoteURL, localDir, false, true)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(3))
+	Expect(lastCommand().Args).To(Equal([]string{
+		"git", "svn", "clone", remoteURL.String(), localDir,
+	}))
+
+	err = GitsvnBackend.Update(localDir)
+
+	Expect(err).NotTo(HaveOccurred())
+	Expect(commands).To(HaveLen(4))
 	Expect(lastCommand().Args).To(Equal([]string{
 		"git", "svn", "rebase",
 	}))
@@ -176,7 +200,7 @@ func TestMercurialBackend(t *testing.T) {
 		return nil
 	}
 
-	err = MercurialBackend.Clone(remoteURL, localDir, false)
+	err = MercurialBackend.Clone(remoteURL, localDir, false, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(1))
@@ -184,17 +208,26 @@ func TestMercurialBackend(t *testing.T) {
 		"hg", "clone", remoteURL.String(), localDir,
 	}))
 
-	err = MercurialBackend.Clone(remoteURL, localDir, true)
+	err = MercurialBackend.Clone(remoteURL, localDir, true, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(2))
 	Expect(lastCommand().Args).To(Equal([]string{
 		"hg", "clone", remoteURL.String(), localDir,
 	}))
-	err = MercurialBackend.Update(localDir)
+
+	err = MercurialBackend.Clone(remoteURL, localDir, false, true)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(3))
+	Expect(lastCommand().Args).To(Equal([]string{
+		"hg", "clone", remoteURL.String(), localDir,
+	}))
+
+	err = MercurialBackend.Update(localDir)
+
+	Expect(err).NotTo(HaveOccurred())
+	Expect(commands).To(HaveLen(4))
 	Expect(lastCommand().Args).To(Equal([]string{
 		"hg", "pull", "--update",
 	}))

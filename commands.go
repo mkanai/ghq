@@ -26,6 +26,7 @@ var cloneFlags = []cli.Flag{
 	cli.BoolFlag{Name: "update, u", Usage: "Update local repository if cloned already"},
 	cli.BoolFlag{Name: "p", Usage: "Clone with SSH"},
 	cli.BoolFlag{Name: "shallow", Usage: "Do a shallow clone"},
+    cli.BoolFlag{Name: "recursive", Usage: "Do a recursive clone"},
 }
 
 var commandGet = cli.Command{
@@ -128,11 +129,17 @@ func doGet(c *cli.Context) {
 	argURL := c.Args().Get(0)
 	doUpdate := c.Bool("update")
 	isShallow := c.Bool("shallow")
+    isRecursive := c.Bool("recursive")
 
 	if argURL == "" {
 		cli.ShowCommandHelp(c, "get")
 		os.Exit(1)
 	}
+
+    if isShallow && isRecursive {
+        utils.Log("error", "Cannot specify both --shallow and --recursive options")
+        os.Exit(1)
+    }
 
 	url, err := NewURL(argURL)
 	utils.DieIf(err)
@@ -152,13 +159,14 @@ func doGet(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	getRemoteRepository(remote, doUpdate, isShallow)
+	getRemoteRepository(remote, doUpdate, isShallow, isRecursive)
 }
 
 // getRemoteRepository clones or updates a remote repository remote.
 // If doUpdate is true, updates the locally cloned repository. Otherwise does nothing.
 // If isShallow is true, does shallow cloning. (no effect if already cloned or the VCS is Mercurial and git-svn)
-func getRemoteRepository(remote RemoteRepository, doUpdate bool, isShallow bool) {
+// If isRecursive is true, does recursive cloning for submodules. (no effect if the VCS is not git)
+func getRemoteRepository(remote RemoteRepository, doUpdate bool, isShallow bool, isRecursive bool) {
 	remoteURL := remote.URL()
 	local := LocalRepositoryFromURL(remoteURL)
 
@@ -183,7 +191,7 @@ func getRemoteRepository(remote RemoteRepository, doUpdate bool, isShallow bool)
 			os.Exit(1)
 		}
 
-		err := vcs.Clone(remoteURL, path, isShallow)
+		err := vcs.Clone(remoteURL, path, isShallow, isRecursive)
 		if err != nil {
 			utils.Log("error", err.Error())
 			os.Exit(1)
@@ -340,12 +348,18 @@ func doImport(c *cli.Context) {
 		doUpdate  = c.Bool("update")
 		isSSH     = c.Bool("p")
 		isShallow = c.Bool("shallow")
+        isRecursive = c.Bool("recursive")
 	)
 
 	var (
 		in       io.Reader
 		finalize func() error
 	)
+
+    if isShallow && isRecursive {
+        utils.Log("error", "Cannot specify both --shallow and --recursive options")
+        os.Exit(1)
+    }
 
 	if len(c.Args()) == 0 {
 		// `ghq import` reads URLs from stdin
@@ -405,7 +419,7 @@ func doImport(c *cli.Context) {
 			continue
 		}
 
-		getRemoteRepository(remote, doUpdate, isShallow)
+		getRemoteRepository(remote, doUpdate, isShallow, isRecursive)
 	}
 	if err := scanner.Err(); err != nil {
 		utils.Log("error", fmt.Sprintf("While reading input: %s", err))
