@@ -77,6 +77,7 @@ func capture(block func()) (string, string, error) {
 type _cloneArgs struct {
 	remote  *url.URL
 	local   string
+    branch string
 	shallow bool
     recursive bool
 }
@@ -100,10 +101,11 @@ func withFakeGitBackend(t *testing.T, block func(string, *_cloneArgs, *_updateAr
 
 	var originalGitBackend = GitBackend
 	GitBackend = &VCSBackend{
-		Clone: func(remote *url.URL, local string, shallow bool, recursive bool) error {
+		Clone: func(remote *url.URL, local string, branch string, shallow bool, recursive bool) error {
 			cloneArgs = _cloneArgs{
 				remote:  remote,
 				local:   local,
+                branch: branch,
 				shallow: shallow,
                 recursive: recursive,
 			}
@@ -186,6 +188,18 @@ func TestCommandGet(t *testing.T) {
 		Expect(filepath.ToSlash(cloneArgs.local)).To(Equal(filepath.ToSlash(localDir)))
 		Expect(cloneArgs.shallow).To(Equal(false))
         Expect(cloneArgs.recursive).To(Equal(true))
+	})
+
+	withFakeGitBackend(t, func(tmpRoot string, cloneArgs *_cloneArgs, updateArgs *_updateArgs) {
+		localDir := filepath.Join(tmpRoot, "github.com", "motemen", "ghq-test-repo")
+
+		app.Run([]string{"", "get", "-branch", "develop", "motemen/ghq-test-repo"})
+
+		Expect(cloneArgs.remote.String()).To(Equal("https://github.com/motemen/ghq-test-repo"))
+		Expect(filepath.ToSlash(cloneArgs.local)).To(Equal(filepath.ToSlash(localDir)))
+        Expect(cloneArgs.branch).To(Equal("develop"))
+		Expect(cloneArgs.shallow).To(Equal(false))
+        Expect(cloneArgs.recursive).To(Equal(false))
 	})
 }
 

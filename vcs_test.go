@@ -26,6 +26,8 @@ func TestGitBackend(t *testing.T) {
 		t.Fatal(err)
 	}
 
+    branch := ""
+
 	commands := []*exec.Cmd{}
 	lastCommand := func() *exec.Cmd { return commands[len(commands)-1] }
 	utils.CommandRunner = func(cmd *exec.Cmd) error {
@@ -33,7 +35,7 @@ func TestGitBackend(t *testing.T) {
 		return nil
 	}
 
-	err = GitBackend.Clone(remoteURL, localDir, false, false)
+	err = GitBackend.Clone(remoteURL, localDir, branch, false, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(1))
@@ -41,7 +43,7 @@ func TestGitBackend(t *testing.T) {
 		"git", "clone", remoteURL.String(), localDir,
 	}))
 
-	err = GitBackend.Clone(remoteURL, localDir, true, false)
+	err = GitBackend.Clone(remoteURL, localDir, branch, true, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(2))
@@ -49,17 +51,27 @@ func TestGitBackend(t *testing.T) {
 		"git", "clone", "--depth", "1", remoteURL.String(), localDir,
 	}))
 
-    err = GitBackend.Clone(remoteURL, localDir, false, true)
+    err = GitBackend.Clone(remoteURL, localDir, branch, false, true)
     Expect(err).NotTo(HaveOccurred())
     Expect(commands).To(HaveLen(3))
     Expect(lastCommand().Args).To(Equal([]string{
         "git", "clone", "--recursive", remoteURL.String(), localDir,
     }))
 
+    branch = "develop"
+    err = GitBackend.Clone(remoteURL, localDir, branch, false, false)
+
+    Expect(err).NotTo(HaveOccurred())
+    Expect(commands).To(HaveLen(4))
+    Expect(lastCommand().Args).To(Equal([]string{
+        "git", "clone", "--branch", branch, remoteURL.String(), localDir,
+    }))
+
+
 	err = GitBackend.Update(localDir)
 
 	Expect(err).NotTo(HaveOccurred())
-	Expect(commands).To(HaveLen(4))
+	Expect(commands).To(HaveLen(5))
 	Expect(lastCommand().Args).To(Equal([]string{
 		"git", "pull", "--ff-only",
 	}))
@@ -81,6 +93,8 @@ func TestSubversionBackend(t *testing.T) {
 		t.Fatal(err)
 	}
 
+    branch := ""
+
 	commands := []*exec.Cmd{}
 	lastCommand := func() *exec.Cmd { return commands[len(commands)-1] }
 	utils.CommandRunner = func(cmd *exec.Cmd) error {
@@ -88,7 +102,7 @@ func TestSubversionBackend(t *testing.T) {
 		return nil
 	}
 
-	err = SubversionBackend.Clone(remoteURL, localDir, false, false)
+	err = SubversionBackend.Clone(remoteURL, localDir, branch, false, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(1))
@@ -96,7 +110,7 @@ func TestSubversionBackend(t *testing.T) {
 		"svn", "checkout", remoteURL.String(), localDir,
 	}))
 
-	err = SubversionBackend.Clone(remoteURL, localDir, true, false)
+	err = SubversionBackend.Clone(remoteURL, localDir, branch, true, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(2))
@@ -104,7 +118,7 @@ func TestSubversionBackend(t *testing.T) {
 		"svn", "checkout", "--depth", "1", remoteURL.String(), localDir,
 	}))
 
-	err = SubversionBackend.Clone(remoteURL, localDir, false, true)
+	err = SubversionBackend.Clone(remoteURL, localDir, branch, false, true)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(3))
@@ -137,6 +151,8 @@ func TestGitsvnBackend(t *testing.T) {
 		t.Fatal(err)
 	}
 
+    branch := ""
+
 	commands := []*exec.Cmd{}
 	lastCommand := func() *exec.Cmd { return commands[len(commands)-1] }
 	utils.CommandRunner = func(cmd *exec.Cmd) error {
@@ -144,7 +160,7 @@ func TestGitsvnBackend(t *testing.T) {
 		return nil
 	}
 
-	err = GitsvnBackend.Clone(remoteURL, localDir, false, false)
+	err = GitsvnBackend.Clone(remoteURL, localDir, branch, false, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(1))
@@ -152,7 +168,7 @@ func TestGitsvnBackend(t *testing.T) {
 		"git", "svn", "clone", remoteURL.String(), localDir,
 	}))
 
-	err = GitsvnBackend.Clone(remoteURL, localDir, true, false)
+	err = GitsvnBackend.Clone(remoteURL, localDir, branch, true, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(2))
@@ -160,7 +176,7 @@ func TestGitsvnBackend(t *testing.T) {
 		"git", "svn", "clone", remoteURL.String(), localDir,
 	}))
 
-	err = GitsvnBackend.Clone(remoteURL, localDir, false, true)
+	err = GitsvnBackend.Clone(remoteURL, localDir, branch, false, true)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(3))
@@ -193,6 +209,8 @@ func TestMercurialBackend(t *testing.T) {
 		t.Fatal(err)
 	}
 
+    branch := ""
+
 	commands := []*exec.Cmd{}
 	lastCommand := func() *exec.Cmd { return commands[len(commands)-1] }
 	utils.CommandRunner = func(cmd *exec.Cmd) error {
@@ -200,7 +218,7 @@ func TestMercurialBackend(t *testing.T) {
 		return nil
 	}
 
-	err = MercurialBackend.Clone(remoteURL, localDir, false, false)
+	err = MercurialBackend.Clone(remoteURL, localDir, branch, false, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(1))
@@ -208,7 +226,7 @@ func TestMercurialBackend(t *testing.T) {
 		"hg", "clone", remoteURL.String(), localDir,
 	}))
 
-	err = MercurialBackend.Clone(remoteURL, localDir, true, false)
+	err = MercurialBackend.Clone(remoteURL, localDir, branch, true, false)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(2))
@@ -216,7 +234,7 @@ func TestMercurialBackend(t *testing.T) {
 		"hg", "clone", remoteURL.String(), localDir,
 	}))
 
-	err = MercurialBackend.Clone(remoteURL, localDir, false, true)
+	err = MercurialBackend.Clone(remoteURL, localDir, branch, false, true)
 
 	Expect(err).NotTo(HaveOccurred())
 	Expect(commands).To(HaveLen(3))

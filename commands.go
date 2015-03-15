@@ -23,6 +23,7 @@ var Commands = []cli.Command{
 }
 
 var cloneFlags = []cli.Flag{
+    cli.StringFlag{Name: "branch, b", Usage: "Clone the given branch"},
 	cli.BoolFlag{Name: "update, u", Usage: "Update local repository if cloned already"},
 	cli.BoolFlag{Name: "p", Usage: "Clone with SSH"},
 	cli.BoolFlag{Name: "shallow", Usage: "Do a shallow clone"},
@@ -127,6 +128,7 @@ OPTIONS:
 
 func doGet(c *cli.Context) {
 	argURL := c.Args().Get(0)
+    branch := c.String("branch")
 	doUpdate := c.Bool("update")
 	isShallow := c.Bool("shallow")
     isRecursive := c.Bool("recursive")
@@ -159,14 +161,14 @@ func doGet(c *cli.Context) {
 		os.Exit(1)
 	}
 
-	getRemoteRepository(remote, doUpdate, isShallow, isRecursive)
+	getRemoteRepository(remote, branch, doUpdate, isShallow, isRecursive)
 }
 
 // getRemoteRepository clones or updates a remote repository remote.
 // If doUpdate is true, updates the locally cloned repository. Otherwise does nothing.
 // If isShallow is true, does shallow cloning. (no effect if already cloned or the VCS is Mercurial and git-svn)
 // If isRecursive is true, does recursive cloning for submodules. (no effect if the VCS is not git)
-func getRemoteRepository(remote RemoteRepository, doUpdate bool, isShallow bool, isRecursive bool) {
+func getRemoteRepository(remote RemoteRepository, branch string, doUpdate bool, isShallow bool, isRecursive bool) {
 	remoteURL := remote.URL()
 	local := LocalRepositoryFromURL(remoteURL)
 
@@ -191,7 +193,7 @@ func getRemoteRepository(remote RemoteRepository, doUpdate bool, isShallow bool,
 			os.Exit(1)
 		}
 
-		err := vcs.Clone(remoteURL, path, isShallow, isRecursive)
+		err := vcs.Clone(remoteURL, path, branch, isShallow, isRecursive)
 		if err != nil {
 			utils.Log("error", err.Error())
 			os.Exit(1)
@@ -345,6 +347,7 @@ func doLook(c *cli.Context) {
 
 func doImport(c *cli.Context) {
 	var (
+        branch = ""
 		doUpdate  = c.Bool("update")
 		isSSH     = c.Bool("p")
 		isShallow = c.Bool("shallow")
@@ -397,6 +400,14 @@ func doImport(c *cli.Context) {
 	scanner := bufio.NewScanner(in)
 	for scanner.Scan() {
 		line := scanner.Text()
+        fields := strings.Fields(line)
+        if len(fields) > 0 {
+            line = fields[0]
+            if len(fields) > 1 {
+                branch = fields[1]
+            }
+        }
+
 		url, err := NewURL(line)
 		if err != nil {
 			utils.Log("error", fmt.Sprintf("Could not parse URL <%s>: %s", line, err))
@@ -419,7 +430,7 @@ func doImport(c *cli.Context) {
 			continue
 		}
 
-		getRemoteRepository(remote, doUpdate, isShallow, isRecursive)
+		getRemoteRepository(remote, branch, doUpdate, isShallow, isRecursive)
 	}
 	if err := scanner.Err(); err != nil {
 		utils.Log("error", fmt.Sprintf("While reading input: %s", err))
