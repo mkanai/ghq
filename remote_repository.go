@@ -87,6 +87,40 @@ func (repo *GoogleCodeRepository) VCS() *VCSBackend {
 	}
 }
 
+type DarksHubRepository struct {
+	url *url.URL
+}
+
+func (repo *DarksHubRepository) URL() *url.URL {
+	return repo.url
+}
+
+func (repo *DarksHubRepository) IsValid() bool {
+	return strings.Count(repo.url.Path, "/") == 2
+}
+
+func (repo *DarksHubRepository) VCS() *VCSBackend {
+	return DarcsBackend
+}
+
+type BluemixRepository struct {
+	url *url.URL
+}
+
+func (repo *BluemixRepository) URL() *url.URL {
+	return repo.url
+}
+
+var validBluemixPathPattern = regexp.MustCompile(`^/git/[^/]+/[^/]+$`)
+
+func (repo *BluemixRepository) IsValid() bool {
+	return validBluemixPathPattern.MatchString(repo.url.Path)
+}
+
+func (repo *BluemixRepository) VCS() *VCSBackend {
+	return GitBackend
+}
+
 type OtherRepository struct {
 	url *url.URL
 }
@@ -125,6 +159,10 @@ func (repo *OtherRepository) VCS() *VCSBackend {
 		if vcs == "hg" || vcs == "mercurial" {
 			return MercurialBackend
 		}
+
+		if vcs == "darcs" {
+			return DarcsBackend
+		}
 	} else {
 		utils.Log("warning", "This version of Git does not support `config --get-urlmatch`; per-URL settings are not available")
 	}
@@ -152,6 +190,14 @@ func NewRemoteRepository(url *url.URL) (RemoteRepository, error) {
 
 	if url.Host == "code.google.com" {
 		return &GoogleCodeRepository{url}, nil
+	}
+
+	if url.Host == "hub.darcs.net" {
+		return &DarksHubRepository{url}, nil
+	}
+
+	if url.Host == "hub.jazz.net" {
+		return &BluemixRepository{url}, nil
 	}
 
 	gheHosts, err := GitConfigAll("ghq.ghe.host")

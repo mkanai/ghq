@@ -1,8 +1,16 @@
 package main
 
-import . "github.com/onsi/gomega"
-import "net/url"
-import "testing"
+import (
+	. "github.com/onsi/gomega"
+	"io/ioutil"
+	"path/filepath"
+	"testing"
+)
+
+import (
+	"net/url"
+	"os"
+)
 
 func TestNewLocalRepository(t *testing.T) {
 	RegisterTestingT(t)
@@ -50,4 +58,47 @@ func TestNewLocalRepository(t *testing.T) {
 	gitAssemblaURL, _ := url.Parse("https://git.assembla.com/ghq.git")
 	r = LocalRepositoryFromURL(gitAssemblaURL)
 	Expect(r.FullPath).To(Equal("/repos/git.assembla.com/ghq"))
+}
+
+func TestLocalRepositoryRoots(t *testing.T) {
+	RegisterTestingT(t)
+
+	defer func(orig string) { os.Setenv("GHQ_ROOT", orig) }(os.Getenv("GHQ_ROOT"))
+
+	_localRepositoryRoots = nil
+	os.Setenv("GHQ_ROOT", "/path/to/ghqroot")
+	Expect(localRepositoryRoots()).To(Equal([]string{"/path/to/ghqroot"}))
+
+	_localRepositoryRoots = nil
+	os.Setenv("GHQ_ROOT", "/path/to/ghqroot1"+string(os.PathListSeparator)+"/path/to/ghqroot2")
+	Expect(localRepositoryRoots()).To(Equal([]string{"/path/to/ghqroot1", "/path/to/ghqroot2"}))
+}
+
+// https://gist.github.com/kyanny/c231f48e5d08b98ff2c3
+func TestList_Symlink(t *testing.T) {
+	RegisterTestingT(t)
+
+	root, err := ioutil.TempDir("", "")
+	Expect(err).To(BeNil())
+
+	symDir, err := ioutil.TempDir("", "")
+	Expect(err).To(BeNil())
+
+	_localRepositoryRoots = []string{root}
+
+	err = os.MkdirAll(filepath.Join(root, "github.com", "atom", "atom", ".git"), 0777)
+	Expect(err).To(BeNil())
+
+	err = os.MkdirAll(filepath.Join(root, "github.com", "zabbix", "zabbix", ".git"), 0777)
+	Expect(err).To(BeNil())
+
+	err = os.Symlink(symDir, filepath.Join(root, "github.com", "ghq"))
+	Expect(err).To(BeNil())
+
+	paths := []string{}
+	walkLocalRepositories(func(repo *LocalRepository) {
+		paths = append(paths, repo.RelPath)
+	})
+
+	Expect(paths).To(HaveLen(2))
 }

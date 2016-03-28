@@ -11,8 +11,8 @@ import (
 )
 
 import (
-	"testing"
 	. "github.com/onsi/gomega"
+	"testing"
 )
 
 func flagSet(name string, flags []cli.Flag) *flag.FlagSet {
@@ -91,7 +91,34 @@ func withFakeGitBackend(t *testing.T, block func(string, *_cloneArgs, *_updateAr
 	if err != nil {
 		t.Fatalf("Could not create tempdir: %s", err)
 	}
-	defer func() { os.RemoveAll(tmpRoot) }()
+	defer os.RemoveAll(tmpRoot)
+
+	// Resolve /var/folders/.../T/... to /private/var/... in OSX
+	tmpRoot = func() string {
+		wd, err := os.Getwd()
+		if err != nil {
+			t.Fatalf("os.Getwd(): %s", err)
+		}
+
+		defer func() {
+			err := os.Chdir(wd)
+			if err != nil {
+				t.Fatalf("os.Chdir(): %s", err)
+			}
+		}()
+
+		err = os.Chdir(tmpRoot)
+		if err != nil {
+			t.Fatalf("os.Chdir(): %s", err)
+		}
+
+		tmpRoot, err := os.Getwd()
+		if err != nil {
+			t.Fatalf("os.Getwd(): %s", err)
+		}
+
+		return tmpRoot
+	}()
 
 	_localRepositoryRoots = []string{tmpRoot}
 	defer func() { _localRepositoryRoots = []string{} }()
@@ -105,9 +132,10 @@ func withFakeGitBackend(t *testing.T, block func(string, *_cloneArgs, *_updateAr
 			cloneArgs = _cloneArgs{
 				remote:  remote,
 				local:   local,
-                branch: branch,
+				branch: branch,
+				local:   filepath.FromSlash(local),
 				shallow: shallow,
-                recursive: recursive,
+				recursive: recursive,
 			}
 			return nil
 		},
@@ -201,6 +229,32 @@ func TestCommandGet(t *testing.T) {
 		Expect(cloneArgs.shallow).To(Equal(false))
         Expect(cloneArgs.recursive).To(Equal(false))
 	})
+
+	withFakeGitBackend(t, func(tmpRoot string, cloneArgs *_cloneArgs, updateArgs *_updateArgs) {
+		localDir := filepath.Join(tmpRoot, "github.com", "motemen")
+		os.MkdirAll(localDir, 0755)
+		wd, _ := os.Getwd()
+		defer os.Chdir(wd)
+		os.Chdir(localDir)
+
+		app.Run([]string{"", "get", "-u", "." + string(filepath.Separator) + "ghq-test-repo"})
+
+		Expect(cloneArgs.remote.String()).To(Equal("https://github.com/motemen/ghq-test-repo"))
+		Expect(cloneArgs.local).To(Equal(filepath.Join(localDir, "ghq-test-repo")))
+	})
+
+	withFakeGitBackend(t, func(tmpRoot string, cloneArgs *_cloneArgs, updateArgs *_updateArgs) {
+		localDir := filepath.Join(tmpRoot, "github.com", "motemen", "ghq-test-repo")
+		os.MkdirAll(localDir, 0755)
+		wd, _ := os.Getwd()
+		defer os.Chdir(wd)
+		os.Chdir(localDir)
+
+		app.Run([]string{"", "get", "-u", ".." + string(filepath.Separator) + "ghq-another-test-repo"})
+
+		Expect(cloneArgs.remote.String()).To(Equal("https://github.com/motemen/ghq-another-test-repo"))
+		Expect(cloneArgs.local).To(Equal(filepath.Join(tmpRoot, "github.com", "motemen", "ghq-another-test-repo")))
+	})
 }
 
 func TestCommandList(t *testing.T) {
@@ -209,7 +263,7 @@ func TestCommandList(t *testing.T) {
 	_, _, err := capture(func() {
 		app := cli.NewApp()
 		flagSet := flagSet("list", commandList.Flags)
-		c := cli.NewContext(app, flagSet, flagSet)
+		c := cli.NewContext(app, flagSet, nil)
 
 		doList(c)
 	})
@@ -224,7 +278,7 @@ func TestCommandListUnique(t *testing.T) {
 		app := cli.NewApp()
 		flagSet := flagSet("list", commandList.Flags)
 		flagSet.Parse([]string{"--unique"})
-		c := cli.NewContext(app, flagSet, flagSet)
+		c := cli.NewContext(app, flagSet, nil)
 
 		doList(c)
 	})
@@ -239,7 +293,7 @@ func TestCommandListUnknown(t *testing.T) {
 		app := cli.NewApp()
 		flagSet := flagSet("list", commandList.Flags)
 		flagSet.Parse([]string{"--unknown-flag"})
-		c := cli.NewContext(app, flagSet, flagSet)
+		c := cli.NewContext(app, flagSet, nil)
 
 		doList(c)
 	})
