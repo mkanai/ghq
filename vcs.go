@@ -97,7 +97,7 @@ var MercurialBackend = &VCSBackend{
 }
 
 var DarcsBackend = &VCSBackend{
-	Clone: func(remote *url.URL, local string, shallow bool) error {
+	Clone: func(remote *url.URL, local string, ignoredBranch string, shallow bool, ignoredRecursive bool) error {
 		dir, _ := filepath.Split(local)
 		err := os.MkdirAll(dir, 0755)
 		if err != nil {
