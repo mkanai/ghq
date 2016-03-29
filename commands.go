@@ -371,11 +371,11 @@ func doLook(c *cli.Context) {
 
 func doImport(c *cli.Context) {
 	var (
-        branch = ""
+		branch = ""
 		doUpdate  = c.Bool("update")
 		isSSH     = c.Bool("p")
 		isShallow = c.Bool("shallow")
-        isRecursive = c.Bool("recursive")
+		isRecursive = c.Bool("recursive")
 	)
 
 	var (
@@ -424,13 +424,15 @@ func doImport(c *cli.Context) {
 	scanner := bufio.NewScanner(in)
 	for scanner.Scan() {
 		line := scanner.Text()
-        fields := strings.Fields(line)
-        if len(fields) > 0 {
-            line = fields[0]
-            if len(fields) > 1 {
-                branch = fields[1]
-            }
-        }
+		fields := strings.Fields(line)
+		if len(fields) > 0 {
+			line = fields[0]
+			if len(fields) > 1 {
+				branch = fields[1]
+			} else {
+				branch = ""
+			}
+		}
 
 		url, err := NewURL(line)
 		if err != nil {
