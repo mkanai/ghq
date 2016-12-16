@@ -127,7 +127,7 @@ OPTIONS:
 {{end}}`
 }
 
-func doGet(c *cli.Context) {
+func doGet(c *cli.Context) error {
 	argURL := c.Args().Get(0)
 	branch := c.String("branch")
 	doUpdate := c.Bool("update")
@@ -186,6 +186,7 @@ func doGet(c *cli.Context) {
 	}
 
 	getRemoteRepository(remote, branch, doUpdate, isShallow, isRecursive)
+	return nil
 }
 
 // getRemoteRepository clones or updates a remote repository remote.
@@ -232,7 +233,7 @@ func getRemoteRepository(remote RemoteRepository, branch string, doUpdate bool, 
 	}
 }
 
-func doList(c *cli.Context) {
+func doList(c *cli.Context) error {
 	query := c.Args().First()
 	exact := c.Bool("exact")
 	printFullPaths := c.Bool("full-path")
@@ -299,9 +300,10 @@ func doList(c *cli.Context) {
 			}
 		}
 	}
+	return nil
 }
 
-func doLook(c *cli.Context) {
+func doLook(c *cli.Context) error {
 	name := c.Args().First()
 
 	if name == "" {
@@ -367,9 +369,10 @@ func doLook(c *cli.Context) {
 			utils.Log("error", "- "+strings.Join(repo.PathParts, "/"))
 		}
 	}
+	return nil
 }
 
-func doImport(c *cli.Context) {
+func doImport(c *cli.Context) error {
 	var (
 		branch = ""
 		doUpdate  = c.Bool("update")
@@ -464,9 +467,10 @@ func doImport(c *cli.Context) {
 	}
 
 	utils.DieIf(finalize())
+	return nil
 }
 
-func doRoot(c *cli.Context) {
+func doRoot(c *cli.Context) error {
 	all := c.Bool("all")
 	if all {
 		for _, root := range localRepositoryRoots() {
@@ -475,4 +479,5 @@ func doRoot(c *cli.Context) {
 	} else {
 		fmt.Println(primaryLocalRepositoryRoot())
 	}
+	return nil
 }
